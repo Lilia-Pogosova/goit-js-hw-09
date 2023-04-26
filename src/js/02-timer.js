@@ -1,21 +1,19 @@
 
 import flatpickr from 'flatpickr';
-import { Notify } from 'notiflix/build/notiflix-notify-aio';
 
-// Import additional css styles
-import 'flatpickr/dist/flatpickr.min.css'
+import 'flatpickr/dist/flatpickr.min.css';
+import Notiflix from 'notiflix';
 
-let getRef = selector => document.querySelector(selector);
-const imputDatePickerRef = getRef('#datetime-picker');
-const btnStartRef = getRef('[data-start]');
-const daysRef = getRef('[data-days]');
-const hoursRef = getRef('[data-hours]');
-const minutesRef = getRef('[data-minutes]');
-const secondsRef = getRef('[data-seconds]');
+const startEl = document.querySelector('[data-start]');
+startEl.disabled = true;
 
-let timeDifference = 0;
+const daysEl = document.querySelector('[data-days]');
+const hoursEl = document.querySelector('[data-hours]');
+const minutesEl = document.querySelector('[data-minutes]');
+const secondsEl = document.querySelector('[data-seconds]');
+
 let timerId = null;
-let formatDate = null;
+let selectedTime = 0;
 
 const options = {
     enableTime: true,
@@ -23,79 +21,68 @@ const options = {
     defaultDate: new Date(),
     minuteIncrement: 1,
     onClose(selectedDates) {
-        console.log(selectedDates[0]);
-        currentDifferenceDate(selectedDates[0]);
+        if (timerId) clearInterval(timerId);
+
+        if (selectedDates[0] < Date.now()) {
+
+            startEl.disabled = true;
+            Notiflix.Notify.failure('Please choose a date in the future');
+            return;
+        } else {
+
+            startEl.disabled = false;
+        }
+
+        selectedTime = selectedDates[0];
+        timerUpdate(convertMs(selectedTime - Date.now()));
     },
 };
 
-btnStartRef.setAttribute('disabled', true);
+function onStart() {
+    let remainingTime = selectedTime - Date.now();
+    startEl.disabled = true;
 
-// Initial flatpickr
-flatpickr(imputDatePickerRef, options);
-
-// Set click event listener on button start
-btnStartRef.addEventListener('click', onBtnStart);
-
-// Start timer
-function onBtnStart() {
-    timerId = setInterval(startTimer, 1000);
+    timerId = setInterval(() => {
+        remainingTime = selectedTime - Date.now();
+        if (remainingTime > 0) {
+            timerUpdate(convertMs(remainingTime));
+        } else {
+            clearInterval(timerId);
+            Notiflix.Notify.info('Time is gone!');
+        }
+    }, 1000);
 }
 
-//date checking and rendering of date difference
-function currentDifferenceDate(selectedDates) {
-    const currentDate = Date.now();
+flatpickr('#datetime-picker', options);
 
-    if (selectedDates < currentDate) {
-        btnStartRef.setAttribute('disabled', true);
-        return Notify.failure('Please choose a date in the future');
-    }
-
-    timeDifference = selectedDates.getTime() - currentDate;
-    formatDate = convertMs(timeDifference);
-
-    renderDate(formatDate);
-    btnStartRef.removeAttribute('disabled');
-}
-
-//Timer
-function startTimer() {
-    btnStartRef.setAttribute('disabled', true);
-    imputDatePickerRef.setAttribute('disabled', true);
-
-    timeDifference -= 1000;
-
-    if (secondsRef.textContent <= 0 && minutesRef.textContent <= 0) {
-        Notify.success('Time end');
-        clearInterval(timerId);
-    } else {
-        formatDate = convertMs(timeDifference);
-        renderDate(formatDate);
-    }
-}
-
-// Rendering date
-function renderDate(formatDate) {
-    secondsRef.textContent = formatDate.seconds;
-    minutesRef.textContent = formatDate.minutes;
-    hoursRef.textContent = formatDate.hours;
-    daysRef.textContent = formatDate.days;
+function pad(value) {
+    return String(value).padStart(2, '0');
 }
 
 function convertMs(ms) {
-    // Number of milliseconds per unit of time
+
     const second = 1000;
     const minute = second * 60;
     const hour = minute * 60;
     const day = hour * 24;
 
     // Remaining days
-    const days = Math.floor(ms / day);
+    const days = pad(Math.floor(ms / day));
     // Remaining hours
-    const hours = Math.floor((ms % day) / hour);
+    const hours = pad(Math.floor((ms % day) / hour));
     // Remaining minutes
-    const minutes = Math.floor(((ms % day) % hour) / minute);
+    const minutes = pad(Math.floor(((ms % day) % hour) / minute));
     // Remaining seconds
-    const seconds = Math.floor((((ms % day) % hour) % minute) / second);
+    const seconds = pad(Math.floor((((ms % day) % hour) % minute) / second));
 
     return { days, hours, minutes, seconds };
 }
+
+function timerUpdate({ days, hours, minutes, seconds }) {
+    daysEl.textContent = days;
+    hoursEl.textContent = hours;
+    minutesEl.textContent = minutes;
+    secondsEl.textContent = seconds;
+}
+
+startEl.addEventListener('click', onStart);
