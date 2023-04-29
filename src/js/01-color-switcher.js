@@ -1,28 +1,29 @@
-const dataStartRef = document.querySelector("[data-start]");
-const dataStopRef = document.querySelector("[data-stop]");
-const bodyRef = document.querySelector("body");
-
-let timerId = null;
-
-dataStartRef.addEventListener("click", onStart);
-dataStopRef.addEventListener("click", onStop);
-
-function onStart() {
-    timerId = setInterval(getBgColor, 1000);
-
-    dataStartRef.toggleAttribute("disabled");
-}
-
-function onStop() {
+const startEl = document.querySelector('[data-start]');
+const stopEl = document.querySelector('[data-stop]');
+  
+  
+  let timerId = null;
+  stopEl.disabled = true;
+  
+  function getRandomHexColor() {
+    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+  }
+  
+  function onStart() {
+   startEl.disabled = true;
+   stopEl.disabled = false;
+  
+    timerId = setInterval(() => {
+      document.body.style.backgroundColor = getRandomHexColor();
+    }, 1000 );
+  }
+  
+  function onStop() {
+   startEl.disabled = false;
+   stopEl.disabled = true;
+  
     clearInterval(timerId);
-
-    dataStartRef.removeAttribute("disabled");
-}
-
-function getBgColor() {
-    bodyRef.style.backgroundColor = getRandomHexColor();
-}
-
-function getRandomHexColor() {
-    return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, 0)}`;
-}
+  }
+  
+startEl.addEventListener('click', onStart);
+stopEl.addEventListener('click', onStop);
